@@ -1,41 +1,57 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import api from "../config/api";
 
 const ListarObras = ({ navigation }) => {
-    const obras = [
-        { id: 1, titulo: 'Obra 1', status: 'nao-iniciada', imagem: require('../assets/muro_azul.png') },
-        { id: 2, titulo: 'Obra 2', status: 'em-andamento', imagem: require('../assets/muro_azul.png') },
-    ];
+    const [obras, setObras] = useState([]);
+
+    const getObras = async () => {
+        await api.get('/obras')
+            .then((response) => {
+                setObras(response.data);
+            })
+            .catch(() => {
+                console.log("Erro ao carregar obras");
+            });
+    };
+
+    useEffect(() => {
+        getObras();
+    }, []);
+
+    const renderItem = ({ item }) => (
+        <View style={styles.card}>
+            <Image source={item.imagem} style={styles.cardImage} />
+            <Text style={styles.cardTitle}>{item.titulo}</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('EditarObra', { id: item.id })}>
+                <Image source={require('../assets/muro_branco.png')} style={styles.icon} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('ExcluirObra', { id: item.id })}>
+                <Image source={require('../assets/muro_branco.png')} style={styles.icon} />
+            </TouchableOpacity>
+        </View>
+    );
 
     return (
         <ScrollView style={styles.container}>
             <View style={styles.navbar}>
                 <View style={styles.logo}>
-                    <Image source={require('../assets/muro_azul.png')} style={styles.logoImage} />
+                    <Image source={require('../assets/muro_branco.png')} style={styles.logoImage} />
                     <Text style={styles.logoText}>Diário de Obras</Text>
                 </View>
                 <TouchableOpacity onPress={() => navigation.navigate('CadastrarObra')}>
-                    <Image source={require('../assets/muro_azul.png')} style={styles.addIcon} />
+                    <Image source={require('../assets/muro_branco.png')} style={styles.addIcon} />
                 </TouchableOpacity>
             </View>
             <View style={styles.board}>
                 {['nao-iniciada', 'em-andamento', 'concluida', 'paralisada'].map((status) => (
                     <View key={status} style={styles.column}>
                         <Text style={styles.columnTitle}>{status}</Text>
-                        {obras
-                            .filter((obra) => obra.status === status)
-                            .map((obra) => (
-                                <View key={obra.id} style={styles.card}>
-                                    <Image source={obra.imagem} style={styles.cardImage} />
-                                    <Text style={styles.cardTitle}>{obra.titulo}</Text>
-                                    <TouchableOpacity onPress={() => navigation.navigate('EditarObra', { id: obra.id })}>
-                                        <Image source={require('../assets/muro_azul.png')} style={styles.icon} />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => navigation.navigate('ExcluirObra', { id: obra.id })}>
-                                        <Image source={require('../assets/muro_azul.png')} style={styles.icon} />
-                                    </TouchableOpacity>
-                                </View>
-                            ))}
+                        <FlatList
+                            data={obras.filter((obra) => obra.status === status)}
+                            renderItem={renderItem}
+                            keyExtractor={(item) => item.id.toString()}
+                        />
                     </View>
                 ))}
             </View>
